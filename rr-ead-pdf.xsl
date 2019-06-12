@@ -1235,18 +1235,25 @@
         <fo:block xsl:use-attribute-sets="h2ID">
           <xsl:value-of select="local:tagName(.)"/>
         </fo:block>
-        <xsl:if test="child::*[@level][1][@level='item' or @level='file' or @level='otherlevel']">
-          <fo:table table-layout="fixed" space-after="12pt" width="100%" font-size="10pt">
-            <fo:table-column column-number="1" column-width="0.75in"/>
-            <fo:table-column column-number="2" column-width="0.75in"/>
-            <fo:table-column column-number="3" column-width="4.5in"/>
-            <fo:table-column column-number="4" column-width="1in"/>
-            <xsl:call-template name="tableHeaders"/>
-            <fo:table-body>
-              <xsl:apply-templates select="child::*[@level='item' or @level='file' or @level='otherlevel']"/>
-            </fo:table-body>
-          </fo:table>
-        </xsl:if>
+        <xsl:choose>
+          <!--Simple collections, e.g., RRFA.12-->
+          <xsl:when test="child::*[@level][1][@level='item' or @level='file' or @level='otherlevel']">
+            <fo:table table-layout="fixed" space-after="12pt" width="100%" font-size="10pt">
+              <fo:table-column column-number="1" column-width="0.75in"/>
+              <fo:table-column column-number="2" column-width="0.75in"/>
+              <fo:table-column column-number="3" column-width="4.5in"/>
+              <fo:table-column column-number="4" column-width="1in"/>
+              <xsl:call-template name="tableHeaders"/>
+              <fo:table-body>
+                <xsl:apply-templates select="child::*[@level='item' or @level='file' or @level='otherlevel']"/>
+              </fo:table-body>
+            </fo:table>
+          </xsl:when>
+          <!--Collections with series, e.g., RRFA.11-->
+          <xsl:otherwise>
+            <xsl:apply-templates select="child::*"/>
+          </xsl:otherwise>
+        </xsl:choose>
       </fo:block>
     </xsl:if>
   </xsl:template>
