@@ -12,14 +12,10 @@
   <!-- The following attribute sets are reusable styles used throughout the stylesheet. -->
   <!-- Headings -->
   <xsl:attribute-set name="h1">
-    <xsl:attribute name="font-size">22pt
-    </xsl:attribute>
-    <xsl:attribute name="font-weight">bold
-    </xsl:attribute>
-    <xsl:attribute name="margin-top">16pt
-    </xsl:attribute>
-    <xsl:attribute name="margin-bottom">8pt
-    </xsl:attribute>
+    <xsl:attribute name="font-size">20pt</xsl:attribute>
+    <xsl:attribute name="font-weight">700</xsl:attribute>
+    <xsl:attribute name="margin-top">24pt</xsl:attribute>
+    <xsl:attribute name="margin-bottom">8pt</xsl:attribute>
   </xsl:attribute-set>
   <xsl:attribute-set name="h2">
     <xsl:attribute name="font-size">16pt
@@ -141,7 +137,7 @@
 
   <!--  Start main page design and layout -->
   <xsl:template match="/">
-    <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format" font-size="11pt" font-family="Verdana, sans-serif">
+    <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format" font-size="11pt" font-family="Verdana">
       <!-- Set up page types and page layouts -->
       <fo:layout-master-set>
         <!-- Page master for Finding Aid Contents -->
@@ -156,7 +152,7 @@
       <!-- The fo:page-sequence establishes headers, footers and the body of the page.-->
 
       <!-- All the rest -->
-      <fo:page-sequence master-reference="contents">
+      <fo:page-sequence master-reference="contents" font-family="Verdana">
         <!-- Page footer-->
         <fo:static-content flow-name="xsl-region-after">
           <fo:block text-align="right" font-size="10pt">
@@ -223,7 +219,7 @@
       </fo:table-body>
     </fo:table>
 
-    <fo:block xsl:use-attribute-sets="h1" text-align="center" margin-left="1in" margin-right="1in">
+    <fo:block xsl:use-attribute-sets="h1" text-align="center" margin-left="1in" margin-right="1in" padding-top=".5in">
       <xsl:choose>
         <xsl:when test="ead:titleproper[@type='filing']">
           <xsl:apply-templates select="ead:titleproper[@type='filing']"/>
@@ -581,6 +577,10 @@
     <xsl:apply-templates/>&#160;
   </xsl:template>
 
+  <xsl:template match="ead:extent" mode="overview">
+    <xsl:apply-templates/>&#160;
+  </xsl:template>
+
   <!-- Formats children of arcdesc not in administrative or related materials sections-->
   <xsl:template match="ead:bibliography | ead:odd | ead:phystech | ead:otherfindaid |
                        ead:bioghist | ead:scopecontent | ead:arrangement | ead:fileplan">
@@ -669,9 +669,11 @@
     </fo:block>
   </xsl:template>
   <xsl:template match="ead:controlaccess/child::*">
+    <xsl:if test="name(.) != 'persname' or (not(@role) or @role != 'dnr')">
     <fo:block>
-      <xsl:apply-templates/>
+      <xsl:apply-templates />
     </fo:block>
+    </xsl:if>
   </xsl:template>
 
   <!-- Formats index and child elements, groups indexentry elements by type (i.e. corpname, subject...) -->
@@ -1231,6 +1233,17 @@
   <!-- Collection Inventory (dsc) templates -->
   <xsl:template match="ead:archdesc/ead:dsc">
     <xsl:if test="count(child::*) >= 1">
+      <xsl:variable name="hasFolders">
+        <xsl:choose>
+          <xsl:when test="descendant::ead:container[@type='folder']">
+            <xsl:value-of select="true()" />
+          </xsl:when>
+          <xsl:otherwise>
+            <xsl:value-of select="false()" />
+          </xsl:otherwise>
+        </xsl:choose>
+      </xsl:variable>
+
       <fo:block xsl:use-attribute-sets="section">
         <fo:block xsl:use-attribute-sets="h2ID">
           <xsl:value-of select="local:tagName(.)"/>
@@ -1240,18 +1253,29 @@
           <xsl:when test="child::*[@level][1][@level='item' or @level='file' or @level='otherlevel']">
             <fo:table table-layout="fixed" space-after="12pt" width="100%" font-size="10pt">
               <fo:table-column column-number="1" column-width="0.75in"/>
-              <fo:table-column column-number="2" column-width="0.75in"/>
-              <fo:table-column column-number="3" column-width="4.5in"/>
-              <fo:table-column column-number="4" column-width="1in"/>
-              <xsl:call-template name="tableHeaders"/>
+              <fo:table-column column-number="2" column-width="0.75in" xsl:use-attribute-sets="tableBorder"/>
+              <fo:table-column column-number="3" column-width="4.5in" xsl:use-attribute-sets="tableBorder"/>
+              <fo:table-column column-number="4" column-width="1in" xsl:use-attribute-sets="tableBorder"/>
+              <xsl:call-template name="tableHeaders">
+                <xsl:with-param name="hasFolders" select="true()" />
+              </xsl:call-template>
+
+              <!-- <fo:table-column column-number="2" column-width="0.75in"/> -->
+              <!-- <fo:table-column column-number="3" column-width="4.5in"/> -->
+              <!-- <fo:table-column column-number="4" column-width="1in"/> -->
+              <!-- <xsl:call-template name="tableHeaders"/> -->
               <fo:table-body>
-                <xsl:apply-templates select="child::*[@level='item' or @level='file' or @level='otherlevel']"/>
+                <xsl:apply-templates select="child::*[@level='item' or @level='file' or @level='otherlevel']">
+                  <xsl:with-param name="hasFolders" select="true()" />
+                </xsl:apply-templates>
               </fo:table-body>
             </fo:table>
           </xsl:when>
           <!--Collections with series, e.g., RRFA.11-->
           <xsl:otherwise>
-            <xsl:apply-templates select="child::*"/>
+            <xsl:apply-templates select="child::*">
+              <xsl:with-param name="hasFolders" select="$hasFolders" />
+            </xsl:apply-templates>
           </xsl:otherwise>
         </xsl:choose>
       </fo:block>
@@ -1263,14 +1287,14 @@
       Adds a row to with a link to top if level series
   -->
   <xsl:template match="ead:c | ead:c01 | ead:c02 | ead:c03 | ead:c04 | ead:c05 | ead:c06 | ead:c07 | ead:c08 | ead:c09 | ead:c10 | ead:c11 | ead:c12">
+    <xsl:param name="hasFolders" />
+
     <xsl:variable name="findClevel" select="count(ancestor::*[not(ead:dsc or ead:archdesc or ead:ead)])"/>
     <xsl:variable name="cPosition" select="position()" />
     <xsl:call-template name="clevel">
-      <xsl:with-param name="level" select="$findClevel">
-      </xsl:with-param>
-      <xsl:with-param name="position" select="$cPosition">
-      </xsl:with-param>
-
+      <xsl:with-param name="level" select="$findClevel" />
+      <xsl:with-param name="position" select="$cPosition" />
+      <xsl:with-param name="hasFolders" select="$hasFolders"/>
     </xsl:call-template>
   </xsl:template>
   <!--This is a named template that processes all the components  -->
@@ -1278,6 +1302,7 @@
     <!-- Establishes which level is being processed in order to provided indented displays. -->
     <xsl:param name="level" />
     <xsl:param name="position" />
+    <xsl:param name="hasFolders"/>
     <xsl:choose>
       <!--Formats Series and Groups  -->
       <xsl:when test="@level='subcollection' or @level='subgrp' or @level='series'
@@ -1289,22 +1314,41 @@
                         </xsl:with-param>
                       </xsl:apply-templates>
                       <xsl:apply-templates select="ead:did" mode="dscSeries"/>
-                      <xsl:apply-templates select="child::*[not(ead:did) and not(self::ead:did)]" mode="dsc"/>
+                      <xsl:apply-templates select="child::*[not(ead:did) and not(self::ead:did)]" mode="dsc">
+                        <xsl:with-param name="hasFolders" select="$hasFolders" />
+                      </xsl:apply-templates>
                       <xsl:choose>
                         <xsl:when test="child::*[@level][1][@level='item' or @level='file' or @level='otherlevel']">
                           <fo:table table-layout="fixed" space-after="12pt" width="100%" font-size="10pt">
                             <fo:table-column column-number="1" column-width="0.75in" xsl:use-attribute-sets="tableBorder"/>
-                            <fo:table-column column-number="2" column-width="0.75in" xsl:use-attribute-sets="tableBorder"/>
-                            <fo:table-column column-number="3" column-width="4.5in" xsl:use-attribute-sets="tableBorder"/>
-                            <fo:table-column column-number="4" column-width="1in" xsl:use-attribute-sets="tableBorder"/>
-                            <xsl:call-template name="tableHeaders"/>
+                            <xsl:choose>
+                              <xsl:when test="$hasFolders">
+                                <fo:table-column column-number="2" column-width="0.75in" xsl:use-attribute-sets="tableBorder"/>
+                                <fo:table-column column-number="3" column-width="4.5in" xsl:use-attribute-sets="tableBorder"/>
+                                <fo:table-column column-number="4" column-width="1in" xsl:use-attribute-sets="tableBorder"/>
+                              </xsl:when>
+                              <xsl:otherwise>
+                                <fo:table-column column-number="2" column-width="5in" xsl:use-attribute-sets="tableBorder"/>
+                                <fo:table-column column-number="3" column-width="1in" xsl:use-attribute-sets="tableBorder"/>
+                              </xsl:otherwise>
+                            </xsl:choose>
+                            <xsl:call-template name="tableHeaders">
+                              <xsl:with-param name="hasFolders" select="$hasFolders" />
+                            </xsl:call-template>
                             <fo:table-body>
-                              <xsl:apply-templates select="child::*[@level='item' or @level='file' or @level='otherlevel']"/>
+                              <xsl:apply-templates select="child::*[@level='item' or @level='file' or @level='otherlevel']">
+                                <xsl:with-param name="hasFolders" select="$hasFolders" />
+                              </xsl:apply-templates>
                             </fo:table-body>
                           </fo:table>
                         </xsl:when>
                         <xsl:otherwise>
-                          <xsl:apply-templates select="child::*[not(ead:did) and not(self::ead:did)]" mode="dsc"/>
+                          <xsl:apply-templates select="child::*[not(ead:did) and not(self::ead:did)]" mode="dsc">
+                            <xsl:with-param name="hasFolders" select="$hasFolders" />
+                          </xsl:apply-templates>
+                          <xsl:apply-templates select="child::*[ead:c | ead:c01 | ead:c02 | ead:c03 | ead:c04 | ead:c05 | ead:c06 | ead:c07 | ead:c08 | ead:c09 | ead:c10 | ead:c11 | ead:c12]">
+                            <xsl:with-param name="hasFolders" select="$hasFolders" />
+                          </xsl:apply-templates>
                         </xsl:otherwise>
                       </xsl:choose>
       </xsl:when>
@@ -1319,20 +1363,25 @@
               </xsl:for-each>
             </fo:block>
           </fo:table-cell>
-          <fo:table-cell>
-            <fo:block margin="4pt 0">
-              <xsl:for-each select="ead:did/ead:container[@type='folder']">
-                <fo:block>
-                  <xsl:value-of select="text()"/>
-                </fo:block>
-              </xsl:for-each>
-            </fo:block>
-          </fo:table-cell>
+          <xsl:if test="$hasFolders">
+            <fo:table-cell>
+              <fo:block margin="4pt 0">
+                <xsl:for-each select="ead:did/ead:container[@type='folder']">
+                  <fo:block>
+                    <xsl:value-of select="text()"/>
+                  </fo:block>
+                </xsl:for-each>
+              </fo:block>
+            </fo:table-cell>
+          </xsl:if>
           <fo:table-cell>
             <fo:block margin="4pt 0">
               <xsl:choose>
-                <xsl:when test="$level &gt; 3">
-                  <xsl:attribute name="margin-left">14pt</xsl:attribute>
+                <xsl:when test="$level &gt; 4">
+                  <xsl:attribute name="margin-left">30pt</xsl:attribute>
+                </xsl:when>
+                <xsl:when test="$level = 4">
+                  <xsl:attribute name="margin-left">20pt</xsl:attribute>
                 </xsl:when>
                 <xsl:when test="$level = 3">
                   <xsl:attribute name="margin-left">10pt</xsl:attribute>
@@ -1353,23 +1402,28 @@
             </fo:block>
           </fo:table-cell>
         </fo:table-row>
-        <xsl:apply-templates select="ead:c | ead:c01 | ead:c02 | ead:c03 | ead:c04 | ead:c05 | ead:c06 | ead:c07 | ead:c08 | ead:c09 | ead:c10 | ead:c11 | ead:c12"/>
+        <xsl:apply-templates select="ead:c | ead:c01 | ead:c02 | ead:c03 | ead:c04 | ead:c05 | ead:c06 | ead:c07 | ead:c08 | ead:c09 | ead:c10 | ead:c11 | ead:c12">
+          <xsl:with-param name="hasFolders" select="$hasFolders" />
+        </xsl:apply-templates>
       </xsl:otherwise>
     </xsl:choose>
   </xsl:template>
   <!-- Named template to generate table headers -->
   <xsl:template name="tableHeaders">
+    <xsl:param name="hasFolders" />
     <fo:table-header>
       <fo:table-cell>
         <fo:block font-weight="bold" padding="2pt">
           Box
         </fo:block>
       </fo:table-cell>
-      <fo:table-cell>
-        <fo:block font-weight="bold" padding="2pt">
-          Folder
-        </fo:block>
-      </fo:table-cell>
+      <xsl:if test="$hasFolders">
+        <fo:table-cell>
+          <fo:block font-weight="bold" padding="2pt">
+            Folder
+          </fo:block>
+        </fo:table-cell>
+      </xsl:if>
       <fo:table-cell>
         <fo:block font-weight="bold" padding="2pt">
           Title
@@ -1689,7 +1743,7 @@
   <xsl:template mode="dsc" match="ead:physdesc">
     <xsl:if test="child::*">
       <fo:block xsl:use-attribute-sets="smp">
-        <fo:inline font-weight="bold">Physical Characteristics and Technical Requirements:
+        <fo:inline font-weight="bold">Extent:
         </fo:inline>
         <xsl:apply-templates mode="overview"/>
       </fo:block>
