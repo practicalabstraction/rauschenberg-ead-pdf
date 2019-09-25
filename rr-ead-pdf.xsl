@@ -137,7 +137,7 @@
 
   <!--  Start main page design and layout -->
   <xsl:template match="/">
-    <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format" font-size="11pt" font-family="Verdana">
+    <fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format" font-size="11pt" font-family="sans-serif">
       <!-- Set up page types and page layouts -->
       <fo:layout-master-set>
         <!-- Page master for Finding Aid Contents -->
@@ -152,7 +152,7 @@
       <!-- The fo:page-sequence establishes headers, footers and the body of the page.-->
 
       <!-- All the rest -->
-      <fo:page-sequence master-reference="contents" font-family="Verdana">
+      <fo:page-sequence master-reference="contents" font-family="sans-serif">
         <!-- Page footer-->
         <fo:static-content flow-name="xsl-region-after">
           <fo:block text-align="right" font-size="10pt">
@@ -447,13 +447,13 @@
         <fo:table-column column-width="5in"/>
         <fo:table-body>
           <xsl:apply-templates select="ead:acqinfo" mode="overview"/>
-          <xsl:apply-templates select="ead:langmaterial" mode="overview"/>
+          <xsl:apply-templates select="ead:did/ead:langmaterial" mode="overview"/>
           <xsl:apply-templates select="ead:accessrestrict" mode="overview"/>
           <xsl:apply-templates select="ead:userestrict" mode="overview"/>
           <xsl:apply-templates select="ead:phystech" mode="overview"/>
           <xsl:apply-templates select="ead:prefercite" mode="overview"/>
           <xsl:apply-templates select="ead:processinfo" mode="overview"/>
-          <xsl:apply-templates select="ead:revisiondesc" mode="overview"/>
+          <xsl:apply-templates select="/ead:ead/ead:eadheader/ead:revisiondesc" mode="overview"/>
         </fo:table-body>
       </fo:table>
     </fo:block>
@@ -489,7 +489,7 @@
   </xsl:template>
 
   <!-- Formats children of arcdesc/did -->
-  <xsl:template match="ead:repository | ead:origination | ead:unittitle | ead:unitdate | ead:unitid | ead:physdesc | ead:physloc | ead:dao | ead:daogrp | ead:langmaterial | ead:materialspec | ead:container | ead:acqinfo | ead:abstract | ead:note | ead:langmaterial | ead:accessrestrict | ead:userestrict | ead:phystech | ead:prefercite | ead:processinfo | ead:revisiondesc" mode="overview">
+  <xsl:template match="ead:repository | ead:origination | ead:unittitle | ead:unitdate | ead:unitid | ead:physdesc | ead:physloc | ead:dao | ead:daogrp | ead:langmaterial | ead:materialspec | ead:container | ead:acqinfo | ead:abstract | ead:note | ead:accessrestrict | ead:userestrict | ead:phystech | ead:prefercite | ead:processinfo | ead:revisiondesc" mode="overview">
     <fo:table-row>
       <fo:table-cell padding-bottom="8pt" padding-right="16pt" text-align="left" font-weight="bold">
         <fo:block>
@@ -518,20 +518,16 @@
             <xsl:otherwise>
               <xsl:choose>
                 <xsl:when test="name(.) = 'unitid'">
-                  <xsl:text>Call Number
-                  </xsl:text>
+                  <xsl:text>Call Number</xsl:text>
                 </xsl:when>
                 <xsl:when test="name(.) = 'physdesc'">
-                  <xsl:text>Extent
-                  </xsl:text>
+                  <xsl:text>Extent</xsl:text>
                 </xsl:when>
                 <xsl:when test="name(.) = 'physloc'">
-                  <xsl:text>Repository
-                  </xsl:text>
+                  <xsl:text>Repository</xsl:text>
                 </xsl:when>
                 <xsl:when test="name(.) = 'acqinfo'">
-                  <xsl:text>Provenance
-                  </xsl:text>
+                  <xsl:text>Provenance</xsl:text>
                 </xsl:when>
                 <xsl:otherwise>
                   <xsl:value-of select="local:tagName(.)"/>
@@ -574,11 +570,11 @@
   </xsl:template>
   <!-- Adds space between extents -->
   <xsl:template match="ead:extent">
-    <xsl:apply-templates/>&#160;
+    <xsl:apply-templates/><xsl:text> </xsl:text>
   </xsl:template>
 
   <xsl:template match="ead:extent" mode="overview">
-    <xsl:apply-templates/>&#160;
+    <xsl:apply-templates/><xsl:text> </xsl:text>
   </xsl:template>
 
   <!-- Formats children of arcdesc not in administrative or related materials sections-->
@@ -1252,23 +1248,41 @@
           <!--Simple collections, e.g., RRFA.12-->
           <xsl:when test="child::*[@level][1][@level='item' or @level='file' or @level='otherlevel']">
             <fo:table table-layout="fixed" space-after="12pt" width="100%" font-size="10pt">
-              <fo:table-column column-number="1" column-width="0.75in"/>
-              <fo:table-column column-number="2" column-width="0.75in" xsl:use-attribute-sets="tableBorder"/>
-              <fo:table-column column-number="3" column-width="4.5in" xsl:use-attribute-sets="tableBorder"/>
-              <fo:table-column column-number="4" column-width="1in" xsl:use-attribute-sets="tableBorder"/>
-              <xsl:call-template name="tableHeaders">
-                <xsl:with-param name="hasFolders" select="true()" />
-              </xsl:call-template>
+              <fo:table-column column-number="1" column-width="0.75in" xsl:use-attribute-sets="tableBorder"/>
+              <xsl:choose>
+                <xsl:when test="descendant::ead:container[@type='folder']">
+                  <fo:table-column column-number="2" column-width="0.75in" xsl:use-attribute-sets="tableBorder"/>
+                  <fo:table-column column-number="3" column-width="4.5in" xsl:use-attribute-sets="tableBorder"/>
+                  <fo:table-column column-number="4" column-width="1in" xsl:use-attribute-sets="tableBorder"/>
+                  <xsl:call-template name="tableHeaders">
+                    <xsl:with-param name="hasFolders" select="true()" />
+                  </xsl:call-template>
+                  <fo:table-body>
+                    <xsl:apply-templates select="child::*[@level='item' or @level='file' or @level='otherlevel']">
+                      <xsl:with-param name="hasFolders" select="true()" />
+                    </xsl:apply-templates>
+                  </fo:table-body>
+                </xsl:when>
+                <xsl:otherwise>
+                  <fo:table-column column-number="2" column-width="5in" xsl:use-attribute-sets="tableBorder"/>
+                  <fo:table-column column-number="3" column-width="1in" xsl:use-attribute-sets="tableBorder"/>
+                  <xsl:call-template name="tableHeaders">
+                    <xsl:with-param name="hasFolders" select="false()" />
+                  </xsl:call-template>
+                  <fo:table-body>
+                    <xsl:apply-templates select="child::*[@level='item' or @level='file' or @level='otherlevel']">
+                      <xsl:with-param name="hasFolders" select="false()" />
+                    </xsl:apply-templates>
+                  </fo:table-body>
+                </xsl:otherwise>
+              </xsl:choose>
+
 
               <!-- <fo:table-column column-number="2" column-width="0.75in"/> -->
               <!-- <fo:table-column column-number="3" column-width="4.5in"/> -->
               <!-- <fo:table-column column-number="4" column-width="1in"/> -->
               <!-- <xsl:call-template name="tableHeaders"/> -->
-              <fo:table-body>
-                <xsl:apply-templates select="child::*[@level='item' or @level='file' or @level='otherlevel']">
-                  <xsl:with-param name="hasFolders" select="true()" />
-                </xsl:apply-templates>
-              </fo:table-body>
+
             </fo:table>
           </xsl:when>
           <!--Collections with series, e.g., RRFA.11-->
@@ -1639,11 +1653,11 @@
                        ead:custodhist | ead:accruals | ead:altformavail |
                        ead:processinfo | ead:appraisal | ead:originalsloc" mode="dsc">
                        <xsl:if test="child::*">
-                         <fo:block xsl:use-attribute-sets="smpDsc">
-                           <fo:inline text-decoration="underline">
+                         <fo:block xsl:use-attribute-sets="smp">
+                           <fo:inline font-weight="bold">
                              <xsl:value-of select="local:tagName(.)"/>:
                            </fo:inline>
-                           <xsl:apply-templates select="child::*[not(ead:head)]"/>
+                           <xsl:apply-templates mode="overview"/>
                          </fo:block>
                        </xsl:if>
   </xsl:template>
@@ -1749,7 +1763,6 @@
       </fo:block>
     </xsl:if>
   </xsl:template>
-
 
   <!-- Everything else in the dsc -->
   <xsl:template mode="dsc" match="*">
