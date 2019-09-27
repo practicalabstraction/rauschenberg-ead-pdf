@@ -1260,6 +1260,7 @@
                   <fo:table-body>
                     <xsl:apply-templates select="child::*[@level='item' or @level='file' or @level='otherlevel']">
                       <xsl:with-param name="hasFolders" select="true()" />
+                      <xsl:with-param name="bumpIndentForNonSeriesColls" select="1" />
                     </xsl:apply-templates>
                   </fo:table-body>
                 </xsl:when>
@@ -1272,6 +1273,7 @@
                   <fo:table-body>
                     <xsl:apply-templates select="child::*[@level='item' or @level='file' or @level='otherlevel']">
                       <xsl:with-param name="hasFolders" select="false()" />
+                      <xsl:with-param name="bumpIndentForNonSeriesColls" select="1" />
                     </xsl:apply-templates>
                   </fo:table-body>
                 </xsl:otherwise>
@@ -1302,13 +1304,14 @@
   -->
   <xsl:template match="ead:c | ead:c01 | ead:c02 | ead:c03 | ead:c04 | ead:c05 | ead:c06 | ead:c07 | ead:c08 | ead:c09 | ead:c10 | ead:c11 | ead:c12">
     <xsl:param name="hasFolders" />
-
-    <xsl:variable name="findClevel" select="count(ancestor::*[not(ead:dsc or ead:archdesc or ead:ead)])"/>
+    <xsl:param name="bumpIndentForNonSeriesColls" select="0" /><!--hack to normalize indentation for non-series collections -->
+    <xsl:variable name="findClevel" select="count(ancestor::*[not(ead:dsc or ead:archdesc or ead:ead)]) + $bumpIndentForNonSeriesColls"/>
     <xsl:variable name="cPosition" select="position()" />
     <xsl:call-template name="clevel">
       <xsl:with-param name="level" select="$findClevel" />
       <xsl:with-param name="position" select="$cPosition" />
       <xsl:with-param name="hasFolders" select="$hasFolders"/>
+      <xsl:with-param name="bumpIndentForNonSeriesColls" select="$bumpIndentForNonSeriesColls" />
     </xsl:call-template>
   </xsl:template>
   <!--This is a named template that processes all the components  -->
@@ -1317,6 +1320,7 @@
     <xsl:param name="level" />
     <xsl:param name="position" />
     <xsl:param name="hasFolders"/>
+    <xsl:param name="bumpIndentForNonSeriesColls" select="0" />
     <xsl:choose>
       <!--Formats Series and Groups  -->
       <xsl:when test="@level='subcollection' or @level='subgrp' or @level='series'
@@ -1418,6 +1422,7 @@
         </fo:table-row>
         <xsl:apply-templates select="ead:c | ead:c01 | ead:c02 | ead:c03 | ead:c04 | ead:c05 | ead:c06 | ead:c07 | ead:c08 | ead:c09 | ead:c10 | ead:c11 | ead:c12">
           <xsl:with-param name="hasFolders" select="$hasFolders" />
+          <xsl:with-param name="bumpIndentForNonSeriesColls" select="$bumpIndentForNonSeriesColls" />
         </xsl:apply-templates>
       </xsl:otherwise>
     </xsl:choose>
@@ -1541,9 +1546,6 @@
     </xsl:if>
   </xsl:template>
 
-
-
-
   <!-- Series child elements -->
   <xsl:template match="ead:did" mode="dscSeries">
     <fo:block margin-bottom="4pt" margin-top="0">
@@ -1570,8 +1572,7 @@
       <xsl:for-each select="ead:unitdate">
         <xsl:apply-templates select="." mode="did"/>
         <xsl:if test="position()!=last()">
-          <xsl:text>,
-          </xsl:text>
+          <xsl:text> </xsl:text>
         </xsl:if>
       </xsl:for-each>
     </fo:block>
@@ -1591,11 +1592,9 @@
   </xsl:template>
   <!-- Formats unitdates -->
   <xsl:template match="ead:unitdate[@type = 'bulk']" mode="did">
-    <!-- <xsl:text>( -->
-    <!-- </xsl:text> -->
+    <xsl:text>(Bulk </xsl:text>
     <xsl:apply-templates/>
-    <!-- <xsl:text>) -->
-    <!-- </xsl:text> -->
+    <xsl:text>)</xsl:text>
   </xsl:template>
   <xsl:template match="ead:unitdate" mode="did">
     <xsl:apply-templates/>
