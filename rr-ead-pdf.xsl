@@ -447,7 +447,7 @@
         <fo:table-column column-width="5in"/>
         <fo:table-body>
           <xsl:apply-templates select="ead:acqinfo" mode="overview"/>
-          <xsl:apply-templates select="ead:did/ead:langmaterial" mode="overview"/>
+          <xsl:apply-templates select="ead:did/ead:langmaterial[last()]" mode="overview"/>
           <xsl:apply-templates select="ead:accessrestrict" mode="overview"/>
           <xsl:apply-templates select="ead:userestrict" mode="overview"/>
           <xsl:apply-templates select="ead:phystech" mode="overview"/>
@@ -528,6 +528,9 @@
                 </xsl:when>
                 <xsl:when test="name(.) = 'acqinfo'">
                   <xsl:text>Provenance</xsl:text>
+                </xsl:when>
+                <xsl:when test="name(.) = 'revisiondesc'">
+                  <xsl:text>Revision Statement</xsl:text>
                 </xsl:when>
                 <xsl:otherwise>
                   <xsl:value-of select="local:tagName(.)"/>
@@ -643,7 +646,7 @@
   <xsl:template match="ead:revisiondesc">
     <fo:block xsl:use-attribute-sets="section">
       <fo:block xsl:use-attribute-sets="h3ID">
-        <xsl:value-of select="local:tagName(.)"/>
+        <xsl:text>Revision Statement</xsl:text>
       </fo:block>
       <xsl:if test="ead:change/ead:item">
         <xsl:value-of select="ead:change/ead:item"/>
@@ -1212,6 +1215,12 @@
   <xsl:template match="ead:head" mode="overview">
     <!--omit-->
   </xsl:template>
+  <xsl:template match="ead:emph" mode="overview">
+    <xsl:apply-templates select="."/>
+  </xsl:template>
+  <xsl:template match="ead:date" mode="overview">
+    <xsl:apply-templates select="."/>&#160;
+  </xsl:template>
   <xsl:template match="ead:lb">
     <fo:block/>
   </xsl:template>
@@ -1219,6 +1228,11 @@
     <fo:block margin="4pt 18pt">
       <xsl:apply-templates/>
     </fo:block>
+  </xsl:template>
+  <xsl:template match="ead:emph[not(@render)]">
+    <fo:inline font-style="italic">
+      <xsl:apply-templates/>
+    </fo:inline>
   </xsl:template>
   <xsl:template match="ead:emph[not(@render)]">
     <fo:inline font-style="italic">
@@ -1337,7 +1351,7 @@
                       </xsl:apply-templates>
                       <xsl:choose>
                         <xsl:when test="child::*[@level][1][@level='item' or @level='file' or @level='otherlevel']">
-                          <fo:table table-layout="fixed" space-after="12pt" width="100%" font-size="10pt">
+                          <fo:table table-layout="fixed" space-after="12pt" space-before="12pt" width="100%" font-size="10pt">
                             <fo:table-column column-number="1" column-width="0.75in" xsl:use-attribute-sets="tableBorder"/>
                             <xsl:choose>
                               <xsl:when test="$hasFolders">
@@ -1487,7 +1501,7 @@
         <xsl:when test="../@level='series'">Series
         <xsl:value-of select="$number"/>:
         </xsl:when>
-        <xsl:when test="../@level='subseries'">Subseries
+        <xsl:when test="../@level='subseries'">Sub-Series
         <xsl:value-of select="$number"/>:
         </xsl:when>
         <xsl:when test="../@level='subsubseries'">Sub-Subseries
@@ -1525,8 +1539,7 @@
         <xsl:for-each select="ead:unitdate">
           <xsl:apply-templates select="." mode="did"/>
           <xsl:if test="position()!=last()">
-            <xsl:text>,
-            </xsl:text>
+            <xsl:text> </xsl:text>
           </xsl:if>
         </xsl:for-each>
       </fo:block>
@@ -1605,8 +1618,8 @@
                        | ead:physdesc | ead:physloc | ead:langmaterial | ead:materialspec | ead:container
                        | ead:abstract | ead:note" mode="dsc">
                        <xsl:if test="normalize-space()">
-                         <fo:block xsl:use-attribute-sets="smpDsc">
-                           <fo:inline text-decoration="underline">
+                         <fo:block xsl:use-attribute-sets="smp">
+                           <fo:inline font-weight="bold">
                              <xsl:choose>
                                <!-- Test for label attribute used by origination element -->
                                <xsl:when test="@label">
@@ -1736,9 +1749,30 @@
   <xsl:template mode="dsc" match="ead:scopecontent">
     <xsl:if test="child::*">
       <fo:block xsl:use-attribute-sets="smp">
-        <fo:inline font-weight="bold">Scope and Content Note:
+        <fo:inline font-weight="bold">
+          <xsl:choose>
+            <xsl:when test="string-length(ead:head)">
+              <xsl:value-of select="ead:head" />
+            </xsl:when>
+            <xsl:otherwise>
+              <xsl:text>Scope and Content</xsl:text>
+          </xsl:otherwise>
+          </xsl:choose>
+          <xsl:text>: </xsl:text>
         </fo:inline>
-        <xsl:apply-templates mode="overview"/>
+        <xsl:choose>
+          <xsl:when test="string-length(ead:p[1])">
+            <xsl:apply-templates select="ead:p[1]" mode="overview" />
+            <xsl:for-each select="ead:p[position() != 1]">
+              <fo:block margin-top="2pt">
+                <xsl:apply-templates select="." mode="overview" />
+              </fo:block>
+            </xsl:for-each>
+          </xsl:when>
+          <xsl:otherwise>
+            <xsl:apply-templates mode="overview"/>
+          </xsl:otherwise>
+        </xsl:choose>
       </fo:block>
     </xsl:if>
   </xsl:template>
