@@ -532,6 +532,9 @@
                 <xsl:when test="name(.) = 'revisiondesc'">
                   <xsl:text>Revision Statement</xsl:text>
                 </xsl:when>
+                <xsl:when test="name(.) = 'langmaterial'">
+                  <xsl:text>Language of Materials</xsl:text>
+                </xsl:when>
                 <xsl:otherwise>
                   <xsl:value-of select="local:tagName(.)"/>
                 </xsl:otherwise>
@@ -1246,10 +1249,10 @@
       <xsl:variable name="hasFolders">
         <xsl:choose>
           <xsl:when test="descendant::ead:container[@type='folder']">
-            <xsl:value-of select="true()" />
+            <xsl:value-of select="number(1)" />
           </xsl:when>
           <xsl:otherwise>
-            <xsl:value-of select="false()" />
+            <xsl:value-of select="number(0)" />
           </xsl:otherwise>
         </xsl:choose>
       </xsl:variable>
@@ -1354,7 +1357,7 @@
                           <fo:table table-layout="fixed" space-after="12pt" space-before="12pt" width="100%" font-size="10pt">
                             <fo:table-column column-number="1" column-width="0.75in" xsl:use-attribute-sets="tableBorder"/>
                             <xsl:choose>
-                              <xsl:when test="$hasFolders">
+                              <xsl:when test="number($hasFolders)">
                                 <fo:table-column column-number="2" column-width="0.75in" xsl:use-attribute-sets="tableBorder"/>
                                 <fo:table-column column-number="3" column-width="4.5in" xsl:use-attribute-sets="tableBorder"/>
                                 <fo:table-column column-number="4" column-width="1in" xsl:use-attribute-sets="tableBorder"/>
@@ -1375,9 +1378,6 @@
                           </fo:table>
                         </xsl:when>
                         <xsl:otherwise>
-                          <xsl:apply-templates select="child::*[not(ead:did) and not(self::ead:did)]" mode="dsc">
-                            <xsl:with-param name="hasFolders" select="$hasFolders" />
-                          </xsl:apply-templates>
                           <xsl:apply-templates select="child::*[ead:c | ead:c01 | ead:c02 | ead:c03 | ead:c04 | ead:c05 | ead:c06 | ead:c07 | ead:c08 | ead:c09 | ead:c10 | ead:c11 | ead:c12]">
                             <xsl:with-param name="hasFolders" select="$hasFolders" />
                           </xsl:apply-templates>
@@ -1395,7 +1395,7 @@
               </xsl:for-each>
             </fo:block>
           </fo:table-cell>
-          <xsl:if test="$hasFolders">
+          <xsl:if test="number($hasFolders)">
             <fo:table-cell>
               <fo:block margin="4pt 0">
                 <xsl:for-each select="ead:did/ead:container[@type='folder']">
@@ -1450,7 +1450,7 @@
           Box
         </fo:block>
       </fo:table-cell>
-      <xsl:if test="$hasFolders">
+      <xsl:if test="number($hasFolders)">
         <fo:table-cell>
           <fo:block font-weight="bold" padding="2pt">
             Folder
@@ -1642,6 +1642,9 @@
                                    </xsl:choose>
                                  </xsl:if>
                                </xsl:when>
+                               <xsl:when test="name(.) = 'langmaterial'">
+                                 <xsl:text>Language of Materials</xsl:text>
+                               </xsl:when>
                                <xsl:otherwise>
                                  <xsl:value-of select="local:tagName(.)"/>
                                  <!-- Test for type attribute used by unitdate -->
@@ -1764,7 +1767,7 @@
           <xsl:when test="string-length(ead:p[1])">
             <xsl:apply-templates select="ead:p[1]" mode="overview" />
             <xsl:for-each select="ead:p[position() != 1]">
-              <fo:block margin-top="2pt">
+              <fo:block margin-top="4pt">
                 <xsl:apply-templates select="." mode="overview" />
               </fo:block>
             </xsl:for-each>
@@ -1797,6 +1800,16 @@
     </xsl:if>
   </xsl:template>
 
+  <xsl:template mode="dsc" match="ead:bioghist">
+    <xsl:if test="child::*">
+      <fo:block xsl:use-attribute-sets="smp">
+        <fo:inline font-weight="bold">Historical Note:
+        </fo:inline>
+        <xsl:apply-templates mode="overview"/>
+      </fo:block>
+    </xsl:if>
+  </xsl:template>
+  
   <!-- Everything else in the dsc -->
   <xsl:template mode="dsc" match="*">
     <xsl:if test="child::*">
